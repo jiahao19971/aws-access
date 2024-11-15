@@ -128,7 +128,7 @@ aws s3 --profile $profile_name ls > /dev/null || aws sso login --profile $profil
 
 RESULT=$(aws --profile $profile_name ec2 describe-instances --filter "Name=instance-state-name,Values=running")
 
-INSTANCE_NAME=$(echo $RESULT | jq '.Reservations[].Instances[].Tags[] | select(.Key == "Name") | .Value')
+INSTANCE_NAME=$(echo $RESULT | jq '.Reservations[].Instances[] | (.Tags[]? | select(.Key == "Name") | .Value) // .InstanceId')
 
 # Loop through each instance name
 while IFS= read -r item; do
@@ -136,7 +136,7 @@ while IFS= read -r item; do
     INSTANCES=$(echo "$item" | tr -d '"')
 
     # Find the private IP address using jq
-    PRIVATE_IP=$(echo "$RESULT" | jq -r ".Reservations[].Instances[] | select(.Tags[] | select(.Key == \"Name\" and .Value == \"$INSTANCES\")) | .NetworkInterfaces[].PrivateIpAddress")
+    PRIVATE_IP=$(echo "$RESULT" | jq -r ".Reservations[].Instances[] | select((.Tags[] | select(.Key == \"Name\" and .Value == \"$INSTANCES\")) // select(.InstanceId == \"$INSTANCES\")) | .NetworkInterfaces[].PrivateIpAddress")
 
     # If multiple IPs, join them with commas
     PRIVATE_IP=$(echo "$PRIVATE_IP" | tr '\n' ',' | sed 's/,$//')
@@ -221,7 +221,7 @@ select choice in "${choices[@]}"
 
             instance_name=$(echo "$choice" | cut -d: -f1)
 
-            INSTANCE_ID=$(echo $RESULT | jq ".Reservations[].Instances[] | select(.Tags[] | select(.Key == \"Name\" and .Value == \"$instance_name\")) | .InstanceId")
+            INSTANCE_ID=$(echo $RESULT | jq ".Reservations[].Instances[] | select((.Tags[] | select(.Key == \"Name\" and .Value == \"$instance_name\")) // select(.InstanceId == \"$instance_name\")) | .InstanceId")
 
             INSTANCE=$(echo "$INSTANCE_ID" | tr -d '"')
 
