@@ -130,6 +130,8 @@ RESULT=$(aws --profile $profile_name ec2 describe-instances --filter "Name=insta
 
 INSTANCE_NAME=$(echo $RESULT | jq '.Reservations[].Instances[] | (.Tags[]? | select(.Key == "Name") | .Value) // .InstanceId')
 
+ALL_INSTANCES=$(echo ${INSTANCE_NAME[@]} | awk 'BEGIN{RS=" ";} {print $1}' | sort)
+
 # Loop through each instance name
 while IFS= read -r item; do
     # Trim quotes and whitespace
@@ -146,7 +148,7 @@ while IFS= read -r item; do
 
     # Append to STRINGS
     STRINGS+="$INSTANCE_W_IP"$'\n'
-done <<< "$INSTANCE_NAME"
+done <<< "$ALL_INSTANCES"
 
 # Convert STRINGS to an array using newline as delimiter
 IFS=$'\n' read -r -d '' -a choices <<< "$STRINGS"
